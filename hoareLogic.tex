@@ -1,0 +1,321 @@
+\documentclass[11pt]{article}
+%%% note templates for memorizing some concrete mathematical calculations. 
+%%% serve as a complementary to the notes in the One-Note. 
+%%% keep a rough time-line record. 
+
+\def\draft{1}  % 1 for draft version (eg including author notes), 0 for non-draft version
+
+%---------Fonts---------%
+\usepackage{url}
+% \usepackage{palatino}
+% \usepackage{mathpazo}
+\usepackage{color}
+\usepackage{graphicx}
+%---------Margins and Length Adjustments---------%
+\usepackage[margin=1in]{geometry}
+\usepackage{mdwlist}
+\setlength{\parskip}{1em}
+\setlength{\parindent}{0em}
+\newcommand{\tinyspace}{\mspace{1mu}}
+
+%---------Math---------%
+\usepackage{amssymb, amsthm, amsmath}
+%This package allows for the natural deduction proofs
+%Can be found here: http://math.ucsd.edu/~sbuss/ResearchWeb/bussproofs/bussproofs.sty
+\usepackage{bussproofs}
+
+
+%---------Comments-------%
+\ifnum\draft=1
+\newcommand{\Wnote}[1]{{\bf\color{blue} [Xiaodi's Note: #1]}}
+\newcommand{\cmt}[1]{{\color{red} #1}}
+\else
+\newcommand{\Wnote}[1]{{}}
+\newcommand{\cmt}[1]{{#1}}
+\fi
+
+%-------- Time ----------%
+\newcommand{\notedate}[1]{\hfill \emph{#1}}
+
+\begin{document}
+\bibliographystyle{plain}
+
+\def\<{\langle}
+\def\>{\rangle}
+\def\N{\mathbb{N}}
+\def\Nwz{\mathbb{N}_0}
+\def\Q{\mathbb{Q}}
+\def\C{\mathbb{C}}
+\def\R{\mathbb{R}}
+\def\eps{\varepsilon}
+\newcommand{\fid}{\operatorname{F}}
+\newcommand{\h}{\mathcal{H}}
+\newcommand{\norm}[1]{\left\lVert\tinyspace#1\tinyspace\right\rVert}
+\newtheorem{theorem}{\bf Theorem}[section]
+\newtheorem{lem}{Lemma}[section]
+\newtheorem{condition}{\bf Condition}[section]
+\newtheorem{corollary}{\bf Corollary}[section]
+\newtheorem{proposition}{Proposition}
+\newtheorem{observation}{Observation}
+\newtheorem{conj}{Conjecture}
+\newcommand{\bra}[1]{\langle #1|}
+\newcommand{\ket}[1]{|#1\rangle}
+\newcommand{\braket}[3]{\langle #1|#2|#3\rangle}
+%%inner product
+\newcommand{\ip}[2]{\langle #1|#2\rangle}
+%%outer product
+\newcommand{\op}[2]{|#1\rangle \langle #2|}
+\newcommand{\symm}[1]{{\mathfrak S}_{#1}}
+\newcommand{\unitary}[1]{U_{#1}}
+\newcommand{\srep}{{\mathtt P}}
+\newcommand{\urep}{{\mathtt Q}}
+
+\newcommand{\tr}{{\rm tr}}
+%\newcommand{\mod}{{\rm mod}}
+\newcommand {\E } {{\mathcal{E}}}
+\newcommand {\F } {{\mathcal{F}}}
+\newcommand {\diag } {{\rm diag}}
+
+%---------Metadata---------%
+\title{Introduction to Hoare Logic}
+\author{ 
+}
+\date{\today}
+
+%---------Main Document---------%
+
+\maketitle
+
+%---------Abstract---------%
+\begin{abstract}
+Hoare Logic was created by C.A.R. Hoare in an attempt to put computer programming on the same logical foundations as mathematics. It consists of a set of axioms and rules of inference which can be used to show proofs of the properties of particular computer programs.
+\end{abstract}
+
+\section{Introduction}
+
+I'm going to (quickly) talk about the programming language IMP, then we're going to see how Hoare logic makes it easier to derive proofs of programs.
+
+IMP is a \textit{very} basic imperative programming language which can only store and operate on numeric values.
+
+
+\section{Syntax}
+The abstract syntax of IMP is defined inductively as follows:
+
+\begin{description*}
+
+\item[$s ::= $] $\textbf{skip } |\ x := e\ |\ s; s\ |\ \textbf{if } e\ s\ s |\ \textbf{while } e\ s$
+
+\item[$e ::= $] $ c\ |\ x\ |\ e + e\ |\ e * e $
+
+\item[$c \in \mathbb{Z}$]
+
+\item[$x \in $] $\{ x_1, x_2, ..., y_1, y_2, ..., z_1, z_2, ..., ... \}$
+
+\end{description*}
+
+\subsection{Heap}
+In order to store our variables somewhere, we need to introduce the concept of a \textit{heap}, which is a total function from variables to constants. More formally, a heap is:
+
+\begin{description*}
+
+\item[$H ::= $] $\cdot \ |\ H, x\to c$
+
+\end{description*}
+
+And the associated lookup function:
+
+\[ 
+H(x) = \begin{cases} 
+      c & \textbf{if } H = H', x\to c \\
+      H'(x) & \textbf{if } H = H', y\to c', \textbf{ and } y\neq x\\
+      0 & \textbf{if } H = \cdot 
+   \end{cases}
+\]
+
+
+We can now associate \textit{judgements} to our programs. The syntax ``$H; e \Downarrow c$'' is read ``$e$ evaluates to $c$ under heap $H$''.
+
+\section{Semantics}
+Now that we have a notion of the symbols that can be used, lets see what happens when we give them meaning!
+
+\begin{description*}
+
+\item[Constant:]
+
+\begin{prooftree}
+	\AxiomC{ }
+	\UnaryInfC{$H; c \Downarrow c$}
+\end{prooftree}
+
+\item[Variable:]
+
+
+\begin{prooftree}
+	\AxiomC{ }
+	\UnaryInfC{$H; x \Downarrow H(x)$}
+\end{prooftree}
+
+
+\item[Add:]
+
+\begin{prooftree}
+	\AxiomC{$ H; e_1 \Downarrow c_1 $}
+	\AxiomC{$ H; e_2 \Downarrow c_2 $}
+	\BinaryInfC{$ H; e_1 + e_2 \Downarrow c_1 + c_2 $}
+\end{prooftree}
+
+\item[Multiply:]
+
+
+\begin{prooftree}
+	\AxiomC{$ H; e_1 \Downarrow c_1 $}
+	\AxiomC{$ H; e_2 \Downarrow c_2 $}
+	\BinaryInfC{$ H; e_1 * e_2 \Downarrow c_1 * c_2 $}
+\end{prooftree}
+
+\end{description*}
+
+
+\section{Deductive Logic}
+
+With the above, we have enough to prove (contrived) programs in IMP! For example, if we wanted to show that the program ``$\cdot ,y\to 4 ; (3 + y)+5 \Downarrow 12$'' is correct, we could simply apply deductive logic to see a complete derivation as follows:
+
+\begin{prooftree}
+\AxiomC{ }
+\UnaryInfC{$\cdot, y\to 4 ; y \Downarrow 4$}
+\AxiomC{ }
+\UnaryInfC{$\cdot, y\to 4 ; 3 \Downarrow 3$}
+\BinaryInfC{$\cdot, y\to 4 ; 3 + y \Downarrow 7$}
+			\AxiomC{ }
+			\UnaryInfC{$\cdot, y\to 4 ; 5 \Downarrow 5$}
+\BinaryInfC{$\cdot ,y\to 4 ; (3 + y)+5 \Downarrow 12$}
+
+\end{prooftree}
+
+\newpage
+
+\section{Hoare Logic}
+In 1969, C.A.R. Hoare noted that ``[c]omputer programming is an exact science in that all the properties of a program and all the consequences of executing it can be found out from the text of the program itself by means of purely deductive reasoning.''\cite{hoare1969axiomatic} \\
+
+The central feature of Hoare logic is the Hoare triple. A triple describes how the execution of a piece of code changes the state of the computation. A Hoare triple is of the form:
+
+\vspace{-1.5em}
+\begin{align*}
+\{P\} C \{R\}
+\end{align*}
+
+The above is read \textit{``If the assertion P is true before initiation of a program C, then the assertion R will be true on its completion''}.
+
+As should be fairly evident, this appears (on the surface) to look similar to our IMP syntax -- we have some precondition (the heap in IMP), a program (an expression in IMP), and a resulting postcondition (the resulting heap).
+
+\subsection{Rules}
+The original paper lays out the following rules\footnote{The notation has changed since the original paper. The notation in this paper follows modern convention.}:
+
+\begin{description*}
+
+\item[Assignment:]
+
+\begin{prooftree}
+	\AxiomC{ }
+	\UnaryInfC{$\{P[E/x]\} x := E \{P\}$}
+\end{prooftree}
+
+\textit{(where $P[E/x]$ denotes the assertion $P$ in which each free occurrence of $x$ has been replaced by the expression $E$)}
+
+\item[If Statements:]
+
+
+\begin{prooftree}
+	\AxiomC{$\{B \land P\} S \{Q\} $}
+	\AxiomC{$\{\lnot B \land P \} T \{Q\}$}
+	\BinaryInfC{$\{P\} \textbf{ if } B \textbf{ then } S \textbf{ else } T \textbf{ endif } \{Q\}$}
+\end{prooftree}
+
+
+\item[Sequencing:]
+
+\begin{prooftree}
+	\AxiomC{$ \{P\} S \{Q\} $}
+	\AxiomC{$ \{Q\} T \{R\} $}
+	\BinaryInfC{$ \{P\} S;T \{R\} $}
+\end{prooftree}
+
+\item[While Loops:]
+
+
+\begin{prooftree}
+	\AxiomC{$ \{P \land B \} S \{P\} $}
+	\UnaryInfC{$ \{P\} \textbf{ while } B \textbf{ do } S \textbf{ done } \{ \lnot B \land P\} $}
+\end{prooftree}
+
+
+
+\end{description*} 
+
+
+\subsection{A Note on Completeness}
+Due to the fact that a language (with some appropriate construct such as iteration) can create a program which will potentially never terminate, we need to prove termination conditions separately (as is done in the \textit{Probabilistic Hoare-Style Logic} paper\cite{hartogs2002prob}). In general, this is complicated.
+
+
+
+\section{Probabilistic Hoare Logic}
+When moving to probabilistic Hoare logic, we need to be able to encode some idea of probability into our Hoare triples, such as $\{ Pr(x=1) > \frac{1}{2} \} c \{ Pr(z=3) = \frac{2}{3} \}$. In \cite{rand2015vphl}, the authors propose adding one more rule to the Hoare logic rules:
+
+
+\begin{description*}
+\item[Coin toss:]
+
+
+\begin{prooftree}
+	\AxiomC{$ y \text{ free in } P $}
+	\UnaryInfC{$ \{P\} y:=\texttt{toss}(p) \{ P \lhd ^y _p \} $}
+\end{prooftree}
+
+\textit{(where $P \lhd ^y _p$ is read ``P conditioned on y with probability p'')}
+
+\end{description*} 
+
+
+The difficulty with probabilistic Hoare logic is almost entire tied up in the \textit{``if''} and \textit{``while''} rules, particularly when the guard is probabilistic. Quite frankly, I don't understand these sections yet.
+
+The paper \cite{hartogs2002prob} introduces a new syntax ``$s \oplus _\rho s'$'' which says that $s$ will occur with probability $\rho$, and $s'$ will occur with probability $1 - \rho$. This introduces a different rule than above, but it retains a similar feel:
+
+\begin{description*}
+
+\item[Probabilistic:]
+
+\begin{prooftree}
+	\AxiomC{$ \{ P \} C \{ R \} $}
+	\AxiomC{$ \{ P \} C' \{ R' \} $}
+	\BinaryInfC{$ \{P\} C \oplus _\rho C' \{ R \oplus _\rho R' \} $}
+\end{prooftree}
+
+
+\end{description*} 
+
+
+\subsection{Example}
+Using deductive logic, we can prove the following simple program which contains some probabilistic element:
+
+\[
+\{ Pr(x=1) = 1 \} (x := x+1)\oplus _{\frac{1}{2}} (x = x+2) \{ Pr(x=2) = \frac{1}{2} \land Pr(x = 3) = \frac{1}{2} \}
+\]
+
+And the complete derivation:
+
+\vspace{-1.5em}
+
+\begin{prooftree}
+\AxiomC{ }
+\UnaryInfC{$ \{ x+1=2 \} x:=x+1 \{ x=2\} $}
+\UnaryInfC{$ \{ x=1 \} x:=x+1 \{ x=2 \} $}
+			\AxiomC{ }
+			\UnaryInfC{$ \{ x+2=3 \} x:=x+2 \{ x=3\} $}
+			\UnaryInfC{$ \{ x=1 \} x:=x+2 \{ x=3\} $}
+\BinaryInfC{$ \{ x=1 \} (x := x+1)\oplus _{\frac{1}{2}} (x = x+2) \{ x=2 \oplus _{\frac{1}{2}} x = 3 $}
+\UnaryInfC{$ \{ x=1 \} (x := x+1)\oplus _{\frac{1}{2}} (x = x+2) \{ Pr(x=2) = \frac{1}{2} \land Pr(x = 3) = \frac{1}{2} $}
+\end{prooftree}
+
+
+\bibliography{citations}
+\end{document}
